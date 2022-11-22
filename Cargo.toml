@@ -1,0 +1,13 @@
+[package]
+name = "todue"
+version = "0.1.0"
+edition = "2021"
+
+authors = ["m-hgn"]
+description = "Keep track of TODOs and deadlines in your terminal"
+
+license = "GPL-3.0"
+readme = "README.md"
+
+[dependencies]
+ncurses = "5.101.0"
