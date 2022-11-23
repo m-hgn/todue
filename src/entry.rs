@@ -17,7 +17,7 @@ pub struct Date {
 impl<'a> Entry<'a> {
     pub fn from_label(label: &'a str) -> Entry<'a> {
         Entry {
-            label: label,
+            label,
             due: None,
             done: false,
         }
@@ -25,7 +25,7 @@ impl<'a> Entry<'a> {
 
     pub fn from_label_and_date(label: &'a str, due: Date) -> Entry<'a> {
         Entry {
-            label: label,
+            label,
             due: Some(due),
             done: false,
         }
