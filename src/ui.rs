@@ -1,43 +1,103 @@
+use crate::action::Action;
+use crate::action::Action::*;
 use crate::entry::*;
 use ncurses::*;
+use std::collections::HashMap;
 
-pub const DOWN_KEYS: [i32; 2] = [b'j' as i32, ncurses::KEY_UP];
-pub const UP_KEYS: [i32; 2] = [b'k' as i32, ncurses::KEY_UP];
-
-pub const SHIFT_DOWN_KEYS: [i32; 1] = [b'J' as i32];
-pub const SHIFT_UP_KEYS: [i32; 1] = [b'K' as i32];
-
-pub const VISUAL_MODE_KEYS: [i32; 1] = [b'v' as i32];
-pub const BLOCK_MODE_KEYS: [i32; 1] = [b'b' as i32];
-
-pub const QUIT_KEYS: [i32; 2] = [b'q' as i32, b'Q' as i32];
-pub const DONE_KEYS: [i32; 2] = [b' ' as i32, ncurses::KEY_ENTER];
-
-pub const NORMAL: i16 = 0;
-pub const HIGHLIGHT: i16 = 1;
+pub const COL_NORMAL: i16 = 0;
+pub const COL_HIGHLIGHT: i16 = 1;
 
 pub struct Ui<'a> {
+    pub active: bool,
     pub entries: Vec<Entry<'a>>,
     pub current_position: usize,
+    pub next_action: Option<Action>,
+    pub key_to_action: HashMap<i32, Action>,
 }
 
 impl<'a> Ui<'a> {
+    pub fn default() -> Ui<'a> {
+        Ui {
+            active: true,
+            entries: Vec::new(),
+            current_position: 0,
+            next_action: None,
+            key_to_action: HashMap::default(),
+        }
+    }
+
+    pub fn from_entries(entries: &[Entry<'a>]) -> Ui<'a> {
+        Ui {
+            active: true,
+            entries: entries.to_vec(),
+            current_position: 0,
+            next_action: None,
+            key_to_action: hash_map![
+                ncurses::KEY_UP => Up,
+                b'k' as i32 => Up,
+                ncurses::KEY_DOWN => Down,
+                b'j' as i32 => Down,
+
+                b'K' as i32 => ShiftUp,
+                b'J' as i32 => ShiftDown,
+
+                b'i' as i32 => Edit,
+                b'I' as i32 => Edit,
+                b'a' as i32 => Edit,
+                b'A' as i32 => Edit,
+
+                b'o' as i32 => NewAfter,
+                b'O' as i32 => NewBefore,
+
+                b'v' as i32 => Selection,
+                b'V' as i32 => BlockSelection,
+
+                b' ' as i32 => MarkDone,
+
+                b'q' as i32 => Quit,
+                b'Q' as i32 => Quit,
+                27 => Quit
+            ],
+        }
+    }
+
     pub fn setup() {
         initscr();
         noecho();
         curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
         start_color();
-        init_pair(NORMAL, COLOR_WHITE, COLOR_BLACK);
-        init_pair(HIGHLIGHT, COLOR_BLACK, COLOR_WHITE);
+        init_pair(COL_NORMAL, COLOR_WHITE, COLOR_BLACK);
+        init_pair(COL_HIGHLIGHT, COLOR_BLACK, COLOR_WHITE);
     }
 
-    pub fn render_entries(&self) {
+    pub fn parse_input(&mut self) {
+        let key = getch();
 
+        if let Some(action) = self.key_to_action.get(&key) {
+            match action {
+                Down => self.down(),
+                Up => self.up(),
+                ShiftDown => todo!(),
+                ShiftUp => todo!(),
+                Edit => todo!(),
+                NewBefore => todo!(),
+                NewAfter => todo!(),
+                Selection => todo!(),
+                BlockSelection => todo!(),
+                MarkDone => self.toggle_done(),
+                Quit => self.quit(),
+            }
+        }
+    }
+
+    pub fn do_input_action(&mut self) {}
+
+    pub fn render_entries(&self) {
         for (i, entry) in self.entries.iter().enumerate() {
             let style = if i == self.current_position {
-                COLOR_PAIR(HIGHLIGHT)
+                COLOR_PAIR(COL_HIGHLIGHT)
             } else {
-                COLOR_PAIR(NORMAL)
+                COLOR_PAIR(COL_NORMAL)
             };
             attron(style);
             mv(i as i32 + 1, 0);
@@ -49,26 +109,27 @@ impl<'a> Ui<'a> {
         refresh();
     }
 
-    pub fn toggle_done(&mut self) {
+    fn toggle_done(&mut self) {
         self.entries[self.current_position].done = !self.entries[self.current_position].done;
     }
 
-    pub fn down(&mut self) {
+    fn down(&mut self) {
         self.current_position = (self.current_position + 1) % self.entries.len()
     }
 
-    pub fn up(&mut self) {
+    fn up(&mut self) {
         self.current_position = match self.current_position {
             0 => self.entries.len() - 1,
             p => p - 1,
         }
     }
 
-    pub fn quit(&self) {
+    fn quit(&mut self) {
         endwin();
+        self.active = false;
     }
 
-    pub fn save() {
+    fn save() {
         todo!()
     }
 }
