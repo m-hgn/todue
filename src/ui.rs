@@ -9,33 +9,28 @@ pub const COL_HIGHLIGHT: i16 = 1;
 
 pub struct Ui<'a> {
     pub active: bool,
+    pub window: Option<WINDOW>,
+
+    pub width: i32,
+    pub height: i32,
+
     pub entries: Vec<Entry<'a>>,
     pub current_position: usize,
-    pub next_action: Option<Action>,
+
     pub key_to_action: HashMap<i32, Action>,
 }
 
 impl<'a> Ui<'a> {
-    pub fn default() -> Ui<'a> {
-        Ui {
-            active: true,
-            entries: Vec::new(),
-            current_position: 0,
-            next_action: None,
-            key_to_action: HashMap::default(),
-        }
-    }
-
     pub fn from_entries(entries: &[Entry<'a>]) -> Ui<'a> {
         Ui {
             active: true,
+            window: None,
+            width: 0,
+            height: 0,
             entries: entries.to_vec(),
             current_position: 0,
-            next_action: None,
             key_to_action: hash_map![
-                ncurses::KEY_UP => Up,
                 b'k' as i32 => Up,
-                ncurses::KEY_DOWN => Down,
                 b'j' as i32 => Down,
 
                 b'K' as i32 => ShiftUp,
@@ -61,13 +56,14 @@ impl<'a> Ui<'a> {
         }
     }
 
-    pub fn setup() {
-        initscr();
+    pub fn setup(&mut self) {
+        self.window = Some(initscr());
         noecho();
         curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
         start_color();
         init_pair(COL_NORMAL, COLOR_WHITE, COLOR_BLACK);
         init_pair(COL_HIGHLIGHT, COLOR_BLACK, COLOR_WHITE);
+        getmaxyx(self.window.unwrap(), &mut self.height, &mut self.width);
     }
 
     pub fn parse_input(&mut self) {
@@ -90,8 +86,6 @@ impl<'a> Ui<'a> {
         }
     }
 
-    pub fn do_input_action(&mut self) {}
-
     pub fn render_entries(&self) {
         for (i, entry) in self.entries.iter().enumerate() {
             let style = if i == self.current_position {
@@ -101,8 +95,9 @@ impl<'a> Ui<'a> {
             };
             attron(style);
             mv(i as i32 + 1, 0);
-            let mut text = if entry.done { "- [x] " } else { "- [ ] " }.to_string();
-            text.push_str(entry.label);
+
+            let text = entry.render(self.width);
+
             addstr(&text);
             attroff(style);
         }
