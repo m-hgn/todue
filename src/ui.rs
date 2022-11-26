@@ -13,6 +13,8 @@ pub struct Ui<'a> {
 
     pub width: i32,
     pub height: i32,
+    pub inner_width: i32,
+    pub inner_height: i32,
 
     pub entries: Vec<Entry<'a>>,
     pub current_position: usize,
@@ -27,6 +29,8 @@ impl<'a> Ui<'a> {
             window: None,
             width: 0,
             height: 0,
+            inner_width: 0,
+            inner_height: 0,
             entries: entries.to_vec(),
             current_position: 0,
             key_to_action: hash_map![
@@ -64,6 +68,13 @@ impl<'a> Ui<'a> {
         init_pair(COL_NORMAL, COLOR_WHITE, COLOR_BLACK);
         init_pair(COL_HIGHLIGHT, COLOR_BLACK, COLOR_WHITE);
         getmaxyx(self.window.unwrap(), &mut self.height, &mut self.width);
+        self.update_window_size();
+    }
+
+    fn update_window_size(&mut self) {
+        getmaxyx(self.window.unwrap(), &mut self.height, &mut self.width);
+        self.inner_height = self.height.saturating_sub(2);
+        self.inner_width = self.width.saturating_sub(2);
     }
 
     pub fn parse_input(&mut self) {
@@ -87,11 +98,22 @@ impl<'a> Ui<'a> {
     }
 
     pub fn render_entries(&mut self) {
-        getmaxyx(self.window.unwrap(), &mut self.height, &mut self.width);
+        self.update_window_size();
 
-        for (i, entry) in self.entries.iter().enumerate() {
+        let offset = (self.current_position as i32 + 1 - self.inner_height).max(0) as usize;
 
-            let style = if i == self.current_position {
+        let position = if self.current_position + 1 > self.inner_height as usize {
+            self.inner_height as usize - 1
+        } else {
+            self.current_position
+        };
+
+        for (i, entry) in self.entries.iter().skip(offset).enumerate() {
+            if i >= self.inner_height as usize {
+                break;
+            }
+
+            let style = if i == position {
                 COLOR_PAIR(COL_HIGHLIGHT)
             } else {
                 COLOR_PAIR(COL_NORMAL)
@@ -100,7 +122,9 @@ impl<'a> Ui<'a> {
             attron(style);
             mv(i as i32 + 1, 0);
 
-            let text = entry.render(self.width);
+            let mut text = " ".to_string();
+            text.push_str(&entry.render(self.inner_width));
+            text.push(' ');
 
             addstr(&text);
             attroff(style);

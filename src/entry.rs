@@ -35,12 +35,10 @@ impl<'a> Entry<'a> {
         let mut available_space = width;
         let mut label: String;
 
-        available_space -= " - [ ] ".len() as i32;
+        available_space -= "- [ ] ".len() as i32;
         if self.due.is_some() {
-            available_space -= " [yyyy-mm-dd, HH:MM] ".len() as i32;
-        } else {
-            available_space -= " ".len() as i32;
-        }
+            available_space -= " [yyyy-mm-dd, HH:MM]".len() as i32;
+        };
 
         if available_space < self.label.len() as i32 {
             available_space -= "...".len() as i32;
@@ -53,13 +51,13 @@ impl<'a> Entry<'a> {
             label.push_str(&padding);
         }
 
-        let mut text: String = if self.done { " - [x] " } else { " - [ ] " }.to_string();
+        let mut text: String = if self.done { "- [x] " } else { "- [ ] " }.to_string();
         text.push_str(&label);
 
         if self.due.is_some() {
             text.push_str(" [");
             text.push_str(&format!("{}", self.due.as_ref().unwrap()));
-            text.push_str("] ");
+            text.push(']');
         }
 
         text
