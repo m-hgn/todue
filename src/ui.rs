@@ -86,13 +86,17 @@ impl<'a> Ui<'a> {
         }
     }
 
-    pub fn render_entries(&self) {
+    pub fn render_entries(&mut self) {
+        getmaxyx(self.window.unwrap(), &mut self.height, &mut self.width);
+
         for (i, entry) in self.entries.iter().enumerate() {
+
             let style = if i == self.current_position {
                 COLOR_PAIR(COL_HIGHLIGHT)
             } else {
                 COLOR_PAIR(COL_NORMAL)
             };
+
             attron(style);
             mv(i as i32 + 1, 0);
 
